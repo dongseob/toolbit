@@ -99,11 +99,14 @@ export default function PngToJpgPage() {
 
     for (const file of selectedFiles) {
       const url = await convertSingleFile(file, quality);
-      results.push({
-        originalName: file.name,
-        jpgUrl: url,
-        size: file.size,
-      });
+      // url이 null이 아닌 유효한 string일 때만 결과 배열에 추가
+      if (url) {
+        results.push({
+          originalName: file.name,
+          jpgUrl: url,
+          size: file.size,
+        });
+      }
     }
 
     setConvertedFiles(results);
