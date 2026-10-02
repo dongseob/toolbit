@@ -15,7 +15,7 @@ interface LanguageContextType {
 
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
 
-// 쿠키 파싱 헬퍼 함수
+// 쿠키 읽기 헬퍼
 function getCookie(name: string): string | null {
   if (typeof document === 'undefined') return null;
   const value = `; ${document.cookie}`;
@@ -24,25 +24,32 @@ function getCookie(name: string): string | null {
   return null;
 }
 
+// 브라우저 초기 언어 결정 헬퍼
+function getInitialLanguage(): Language {
+  if (typeof window === 'undefined') return 'en';
+
+  // 1. 기존 저장된 쿠키 확인
+  const savedLang = getCookie('toolbit_lang') as Language;
+  if (savedLang && (savedLang === 'en' || savedLang === 'ko')) {
+    return savedLang;
+  }
+
+  // 2. 쿠키가 없을 경우 브라우저 언어 감지
+  const browserLang = navigator.language.toLowerCase();
+  return browserLang.startsWith('ko') ? 'ko' : 'en';
+}
+
 export function LanguageProvider({ children }: { children: React.ReactNode }) {
-  const [language, setLanguage] = useState<Language>('en');
+  // useState 초기화 함수(Lazy Initialization)를 사용해 최초 1회만 계산
+  const [language, setLanguage] = useState<Language>(() => getInitialLanguage());
 
+  // 쿠키 동기화만 effect에서 처리 (동기 setState 호출 없음)
   useEffect(() => {
-    // 1. 기존에 저장된 언어 쿠키 확인
-    const savedLang = getCookie('toolbit_lang') as Language;
-
-    if (savedLang && (savedLang === 'en' || savedLang === 'ko')) {
-      setLanguage(savedLang);
-    } else {
-      // 2. 쿠키가 없을 경우 브라우저 언어 감지 (한국어 유저 감지)
-      const browserLang = navigator.language.toLowerCase();
-      const initialLang: Language = browserLang.startsWith('ko') ? 'ko' : 'en';
-
-      setLanguage(initialLang);
-      // 초기 감지 결과를 쿠키에 1년간 보관
-      document.cookie = `toolbit_lang=${initialLang}; path=/; max-age=31536000`;
+    const savedLang = getCookie('toolbit_lang');
+    if (!savedLang) {
+      document.cookie = `toolbit_lang=${language}; path=/; max-age=31536000`;
     }
-  }, []);
+  }, [language]);
 
   const handleSetLanguage = (lang: Language) => {
     setLanguage(lang);
